@@ -193,83 +193,6 @@ Edit atau buat preset baru di `presets/`:
 
 ---
 
-## 📁 Project Structure
-
-```
-autocut-termux/
-├── autocut.py              # Main CLI (WITH LICENSE CHECK)
-├── license_manager.py      # License validation & activation
-├── parser.py               # AI output parser (FSM)
-├── downloader.py           # yt-dlp wrapper
-├── cutter.py               # FFmpeg wrapper
-├── queue_manager.py        # SQLite queue
-├── config.json             # Global config
-├── presets/
-│   ├── default.json
-│   ├── viral_style.json
-│   └── minimal.json
-├── output/                 # Hasil cut
-├── temp/                   # Download cache
-├── logs/                   # Log files
-└── install.sh              # Auto installer
-```
-
----
-
-## 🔧 Architecture
-
-Adopted from **Intisari AutoCut** pattern dengan improvement:
-
-| Component | Intisari | AutoCut Termux |
-|-----------|----------|----------------|
-| Parser | JavaScript (Chrome Extension) | Python (FSM Parser) |
-| Downloader | PC Backend (.deb) | yt-dlp (native) |
-| Cutter | FFmpeg (PC) | FFmpeg (Termux) |
-| Queue | WebSocket + Polling | SQLite (local) |
-| License | Closed (.deb check) | **License-activated** |
-| Platform | PC + Chrome | **Termux only** |
-
-### FSM Parser States
-
-```
-IDLE → META → HOOKS → SEO → TIMESTAMP → HALT
-```
-
-Parser extract:
-- URL video
-- Title
-- Clips (start, end, title, hook, caption)
-- Viral score & reason
-
----
-
-## 🛠️ Development
-
-### Run Tests
-
-```bash
-# Test parser
-python parser.py
-
-# Test downloader
-python downloader.py
-
-# Test cutter
-python cutter.py
-
-# Test queue manager
-python queue_manager.py
-```
-
-### Add New Features
-
-1. **New preset**: Tambah file JSON di `presets/`
-2. **New downloader**: Extend `VideoDownloader` class
-3. **New effects**: Extend `VideoCutter._apply_preset_to_cmd()`
-4. **New parser pattern**: Add regex di `AIParser.__init__()`
-
----
-
 ## 📝 License
 
 **Commercial License - Personal Use Only**
@@ -295,10 +218,8 @@ See [LICENSE](LICENSE) file for details.
 
 ## 🙏 Credits
 
-- **Inspired by**: Intisari AutoCut (intisariapps.com)
-- **Parser**: FSM pattern adopted from `gemini_parser.js`
-- **Queue**: Wide-Pipe protocol concept from Intisari
 - **Tools**: yt-dlp, FFmpeg, SQLite
+- **Inspired by**: Intisari AutoCut
 
 ---
 
