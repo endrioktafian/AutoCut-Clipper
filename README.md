@@ -42,6 +42,7 @@ Automatically cut viral clips from videos using AI analysis. Download from YouTu
 - 📥 **Multi-platform Download** - YouTube, TikTok, Instagram, Twitter, Facebook
 - 🤖 **AI Parser** - Parse output dari Gemini, Claude, ChatGPT dengan FSM parser
 - ✂️ **Auto-Cut** - Cut video berdasarkan timestamp dari AI
+- 🎬 **Scene Detector** - Auto-detect scene changes tanpa AI (FFmpeg-based)
 - 📊 **Queue System** - Batch processing dengan SQLite queue (resume capability)
 - 🎨 **Preset System** - Custom presets untuk consistent style (zoom, fps, effects)
 - 📱 **Termux Native** - Jalan di Android tanpa PC
