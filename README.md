@@ -1,8 +1,39 @@
 # 🎬 AUTOCUT TERMUX
 
-**AI-Powered Video Clipper untuk Termux - No License, No Expiry, Full Access**
+**AI-Powered Video Clipper untuk Termux - License Required**
 
 Automatically cut viral clips from videos using AI analysis. Download from YouTube/TikTok/Instagram, parse AI output (Gemini/Claude/ChatGPT), and auto-cut into shareable clips.
+
+---
+
+## ⚠️ LICENSE REQUIREMENT
+
+**Versi ini memerlukan license key untuk berjalan.**
+
+| License Type | Duration | Price |
+|--------------|----------|-------|
+| **TRIAL** | 7 hari | GRATIS |
+| **FULL** | 1 tahun | Rp 99.000 |
+
+### Cara Activate License
+
+1. **Trial (Gratis 7 hari)**:
+   - Jalankan `python autocut.py`
+   - Pilih opsi `2. Gunakan trial gratis`
+   - Trial key akan di-generate otomatis
+   - Valid untuk 7 hari
+
+2. **Full License**:
+   - Beli di: **[LINK WEBSITE LO]** *(coming soon)*
+   - Lo bakal dapet license key
+   - Jalankan `python autocut.py`
+   - Pilih opsi `1. Masukkan license key`
+   - Paste key yang lo dapet
+
+3. **Check License Status**:
+   ```bash
+   python license_manager.py status
+   ```
 
 ---
 
@@ -14,7 +45,7 @@ Automatically cut viral clips from videos using AI analysis. Download from YouTu
 - 📊 **Queue System** - Batch processing dengan SQLite queue (resume capability)
 - 🎨 **Preset System** - Custom presets untuk consistent style (zoom, fps, effects)
 - 📱 **Termux Native** - Jalan di Android tanpa PC
-- 🔓 **Open Source** - No license, no expiry, no activation
+- 🔐 **License Protected** - 1 license = 1 device (trial 7 hari tersedia)
 
 ---
 
@@ -37,10 +68,10 @@ pkg install python ffmpeg git wget curl
 pip install yt-dlp
 
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/autocut-termux.git
+git clone https://github.com/endrioktafian/AutoCut-Clipper.git
 cd autocut-termux
 
-# Run
+# Run (akan minta license activation)
 python autocut.py
 ```
 
@@ -56,14 +87,16 @@ autocut
 
 # Or run directly:
 cd ~/autocut-termux && python autocut.py
+
+# First run akan meminta license activation
 ```
 
 ### Main Menu
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
-║     🎬 AUTOCUT TERMUX v1.0.0 - Viral Clip Generator     ║
-║     No License • No Expiry • Full Access                  ║
+║     🎬 AUTOCUT TERMUX v1.0.0-GITHUB                       ║
+║     ⚠️  LICENSE REQUIRED - GitHub Version                 ║
 ╚═══════════════════════════════════════════════════════════╝
 
 ────────────────────────────────────────────────────────────
@@ -75,7 +108,8 @@ cd ~/autocut-termux && python autocut.py
   4. 📋 Process Pending Queue
   5. 🗑️  Clear Completed Videos
   6. ⚙️  Settings
-  7. ℹ️  About / Help
+  7. 🔐 License Status
+  8. ℹ️  About / Help
   0. 🚪 Exit
 ────────────────────────────────────────────────────────────
 ```
@@ -163,7 +197,8 @@ Edit atau buat preset baru di `presets/`:
 
 ```
 autocut-termux/
-├── autocut.py              # Main CLI
+├── autocut.py              # Main CLI (WITH LICENSE CHECK)
+├── license_manager.py      # License validation & activation
 ├── parser.py               # AI output parser (FSM)
 ├── downloader.py           # yt-dlp wrapper
 ├── cutter.py               # FFmpeg wrapper
@@ -191,7 +226,7 @@ Adopted from **Intisari AutoCut** pattern dengan improvement:
 | Downloader | PC Backend (.deb) | yt-dlp (native) |
 | Cutter | FFmpeg (PC) | FFmpeg (Termux) |
 | Queue | WebSocket + Polling | SQLite (local) |
-| License | Closed (.deb check) | **None (open)** |
+| License | Closed (.deb check) | **License-activated** |
 | Platform | PC + Chrome | **Termux only** |
 
 ### FSM Parser States
@@ -237,7 +272,24 @@ python queue_manager.py
 
 ## 📝 License
 
-**MIT License** - Free to use, modify, distribute. No warranty.
+**Commercial License - Personal Use Only**
+
+- 1 license = 1 device
+- Trial 7 hari tersedia (gratis)
+- Full license valid 1 tahun
+
+See [LICENSE](LICENSE) file for details.
+
+---
+
+## 💳 Pricing
+
+| Plan | Price | Duration | Features |
+|------|-------|----------|----------|
+| **TRIAL** | FREE | 7 days | All features, 1 device |
+| **FULL** | Rp 99.000 | 1 year | All features, 1 device, priority support |
+
+**Contact**: [DM for purchase](https://t.me/YOUR_USERNAME)
 
 ---
 
@@ -258,6 +310,6 @@ This tool is for **personal/educational use only**. Respect copyright and terms 
 
 ## 📞 Support
 
-- **GitHub Issues**: [Create issue](https://github.com/YOUR_USERNAME/autocut-termux/issues)
+- **GitHub Issues**: [Create issue](https://github.com/endrioktafian/AutoCut-Clipper/issues)
 - **Documentation**: See `README.md`
-- **Version**: 1.0.0
+- **Version**: 1.0.0-GITHUB
