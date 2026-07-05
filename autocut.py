@@ -20,6 +20,7 @@ from downloader import VideoDownloader
 from cutter import VideoCutter
 from queue_manager import QueueManager
 from license_manager import LicenseManager
+from scene_detector import SceneDetector, detect_scenes_interactive
 
 # Constants
 VERSION = "1.0.0-GITHUB"
@@ -144,12 +145,14 @@ def print_menu(trial_mode: bool = False, days_left: int = 0):
     print("─" * 60)
     print("  1. 📥 Download & Cut (URL + AI Output)")
     print("  2. ✂️  Cut Local Video (Paste AI Output)")
-    print("  3. 📊 View Queue Stats")
-    print("  4. 📋 Process Pending Queue")
-    print("  5. 🗑️  Clear Completed Videos")
-    print("  6. ⚙️  Settings")
-    print("  7. 🔐 License Status")
-    print("  8. ℹ️  About / Help")
+    print("  3. 🚀 AUTO MODE: Download → Detect → Cut (No AI!)")
+    print("  4. 🎬 Auto-Detect Scenes (Local Video)")
+    print("  5. 📊 View Queue Stats")
+    print("  6. 📋 Process Pending Queue")
+    print("  7. 🗑️  Clear Completed Videos")
+    print("  8. ⚙️  Settings")
+    print("  9. 🔐 License Status")
+    print(" 10. ℹ️  About / Help")
     print("  0. 🚪 Exit")
     print("─" * 60)
 
@@ -361,6 +364,263 @@ def option_cut_local(config: dict, cutter: VideoCutter, queue: QueueManager):
     
     success_count = sum(1 for r in results if r)
     print(f"\n✅ Done! {success_count}/{len(results)} clips berhasil")
+
+def option_auto_download_detect_cut(config: dict, downloader: VideoDownloader,
+                                     cutter: VideoCutter, queue: QueueManager):
+    """Option 3: FULL AUTO - Download → Detect Scenes → Cut (No AI needed!)"""
+    print("\n" + "═" * 60)
+    print("🚀 AUTO MODE: Download → Detect → Cut")
+    print("═" * 60)
+    print("\n💡 Flow: URL → Download → Auto-Detect Scenes → Cut")
+    print("   Gak perlu AI output! Semuanya otomatis.\n")
+    
+    # Get URL
+    url = input("📌 Masukkan URL (YouTube/TikTok/Instagram): ").strip()
+    if not url:
+        print("❌ URL kosong!")
+        return
+    
+    # Get detection settings upfront
+    print("\n⚙️  Scene Detection Settings:")
+    try:
+        threshold = input("   Threshold (0.1-0.9, default 0.3): ").strip()
+        threshold = float(threshold) if threshold else 0.3
+        
+        min_length = input("   Min scene length (sec, default 3.0): ").strip()
+        min_length = float(min_length) if min_length else 3.0
+        
+        max_clips = input("   Max clips to cut (default 10): ").strip()
+        max_clips = int(max_clips) if max_clips else 10
+    except ValueError as e:
+        print(f"❌ Invalid input: {e}")
+        return
+    
+    # Select preset
+    print("\n🎨 Select preset:")
+    presets = list_presets()
+    for i, p in enumerate(presets, 1):
+        default = " (default)" if p.get('is_default') else ""
+        print(f"  [{i}] {p['name']}{default}")
+    
+    try:
+        preset_idx = int(input("   Pilih preset [1-{}]: ".format(len(presets))).strip())
+        preset_name = presets[preset_idx - 1]['name'] if 1 <= preset_idx <= len(presets) else 'default'
+    except:
+        preset_name = 'default'
+    
+    preset = load_preset(preset_name)
+    print(f"   Using preset: {preset_name}")
+    
+    # Confirm
+    print("\n" + "─" * 60)
+    print("📋 SUMMARY:")
+    print(f"   URL: {url[:60]}...")
+    print(f"   Threshold: {threshold}")
+    print(f"   Min length: {min_length}s")
+    print(f"   Max clips: {max_clips}")
+    print(f"   Preset: {preset_name}")
+    print("─" * 60)
+    
+    confirm = input("\n🚀 Gas auto-cut? [y/n]: ").strip().lower()
+    if confirm != 'y':
+        print("Cancelled.")
+        return
+    
+    # STEP 1: Download
+    print("\n" + "═" * 60)
+    print("📥 STEP 1: Downloading...")
+    print("═" * 60)
+    
+    try:
+        video_info = downloader.get_video_info(url)
+        print(f"  Title: {video_info['title']}")
+        print(f"  Duration: {video_info['duration']}s")
+        print(f"  Uploader: {video_info['uploader']}")
+    except Exception as e:
+        print(f"⚠️  Can't get info: {e}")
+    
+    print(f"\n⏳ Downloading {url}...")
+    try:
+        video_path = downloader.download(url)
+        print(f"✅ Downloaded: {video_path}")
+    except Exception as e:
+        print(f"❌ Download failed: {e}")
+        return
+    
+    # STEP 2: Auto-detect scenes
+    print("\n" + "═" * 60)
+    print("🎬 STEP 2: Auto-Detecting Scenes...")
+    print("═" * 60)
+    
+    detector = SceneDetector(threshold=threshold, min_scene_length=min_length)
+    
+    def progress(current, total):
+        pct = (current / total * 100) if total > 0 else 0
+        print(f"   Scanning: {pct:.1f}%", end='\r')
+    
+    try:
+        segments_raw = detector.detect_scenes(video_path, progress_callback=progress)
+        print(f"\n✅ Found {len(segments_raw)} scenes!")
+    except Exception as e:
+        print(f"\n❌ Error detecting scenes: {e}")
+        return
+    
+    # Limit max clips
+    if len(segments_raw) > max_clips:
+        print(f"⚠️  Limiting to {max_clips} clips (from {len(segments_raw)})")
+        segments_raw = segments_raw[:max_clips]
+    
+    # Show detected scenes
+    print("\n📊 Detected scenes:")
+    print("─" * 50)
+    for i, seg in enumerate(segments_raw, 1):
+        start_ts = detector.format_timestamp(seg.start)
+        end_ts = detector.format_timestamp(seg.end)
+        duration = seg.end - seg.start
+        print(f"  [{i}] {start_ts} - {end_ts} | {seg.title} ({duration:.1f}s)")
+    print("─" * 50)
+    
+    # Final confirm
+    confirm = input(f"\n✂️  Cut {len(segments_raw)} clips? [y/n]: ").strip().lower()
+    if confirm != 'y':
+        print("Cancelled.")
+        return
+    
+    # STEP 3: Cut
+    print("\n" + "═" * 60)
+    print("✂️  STEP 3: Cutting clips...")
+    print("═" * 60)
+    
+    seg_data = [
+        {'start': detector.format_timestamp(s.start), 
+         'end': detector.format_timestamp(s.end), 
+         'title': s.title}
+        for s in segments_raw
+    ]
+    
+    results = cutter.cut_batch(
+        input_path=video_path,
+        segments=seg_data,
+        preset=preset,
+        fast_cut=preset.get('fast_cut', True)
+    )
+    
+    success_count = sum(1 for r in results if r)
+    print(f"\n✅ Done! {success_count}/{len(results)} clips berhasil")
+    
+    # Show output
+    if success_count > 0:
+        print("\n📁 Output files:")
+        for r in results:
+            if r:
+                print(f"  ✓ {r}")
+        
+        output_dir = config.get('output_dir', './output')
+        print(f"\n💾 All clips saved to: {output_dir}/")
+
+def option_auto_detect_scenes(config: dict, cutter: VideoCutter, queue: QueueManager):
+    """Option 4: Auto-detect scenes from local video (no AI needed)"""
+    print("\n" + "─" * 60)
+    print("🎬 AUTO-DETECT SCENES")
+    print("─" * 60)
+    print("\nScan video dan auto-detect scene changes...")
+    print("Tidak perlu AI output!\n")
+    
+    # Get video path
+    video_path = input("📁 Path ke video file: ").strip().strip('"')
+    
+    if not Path(video_path).exists():
+        print(f"\n❌ Video tidak ditemukan: {video_path}")
+        return
+    
+    print(f"\n✓ Video found: {Path(video_path).name}")
+    
+    # Get detection settings
+    print("\n⚙️  Detection Settings:")
+    try:
+        threshold = input("   Scene threshold (0.1-0.9, default 0.3): ").strip()
+        if not threshold:
+            threshold = 0.3
+        else:
+            threshold = float(threshold)
+        
+        min_length = input("   Min scene length in seconds (default 3.0): ").strip()
+        if not min_length:
+            min_length = 3.0
+        else:
+            min_length = float(min_length)
+    except ValueError as e:
+        print(f"❌ Invalid input: {e}")
+        return
+    
+    # Detect scenes
+    print("\n🔍 Scanning video...")
+    
+    detector = SceneDetector(threshold=threshold, min_scene_length=min_length)
+    
+    try:
+        segments = detector.detect_scenes(video_path)
+        print(f"\n✅ Found {len(segments)} scenes!\n")
+    except Exception as e:
+        print(f"\n❌ Error detecting scenes: {e}")
+        return
+    
+    # Show results
+    print("📊 Detected scenes:\n")
+    print("─" * 50)
+    for i, seg in enumerate(segments, 1):
+        start_ts = detector.format_timestamp(seg.start)
+        end_ts = detector.format_timestamp(seg.end)
+        duration = seg.end - seg.start
+        print(f"  [{i}] {start_ts} - {end_ts} | {seg.title} ({duration:.1f}s)")
+    print("─" * 50)
+    
+    # Select preset
+    print("\n🎨 Select preset:")
+    presets = list_presets()
+    for i, p in enumerate(presets, 1):
+        default = " (default)" if p.get('is_default') else ""
+        print(f"  [{i}] {p['name']}{default}")
+    
+    try:
+        preset_idx = int(input("\nPilih preset [1-{}]: ".format(len(presets))).strip())
+        preset_name = presets[preset_idx - 1]['name'] if 1 <= preset_idx <= len(presets) else 'default'
+    except:
+        preset_name = 'default'
+    
+    preset = load_preset(preset_name)
+    
+    # Confirm cut
+    confirm = input(f"\n✂️  Cut {len(segments)} scenes? [y/n]: ").strip().lower()
+    if confirm != 'y':
+        print("Cancelled.")
+        return
+    
+    # Cut video
+    print(f"\n⏳ Cutting scenes...")
+    seg_data = [
+        {'start': detector.format_timestamp(s.start), 
+         'end': detector.format_timestamp(s.end), 
+         'title': s.title}
+        for s in segments
+    ]
+    
+    results = cutter.cut_batch(
+        input_path=video_path,
+        segments=seg_data,
+        preset=preset,
+        fast_cut=preset.get('fast_cut', True)
+    )
+    
+    success_count = sum(1 for r in results if r)
+    print(f"\n✅ Done! {success_count}/{len(results)} scenes berhasil")
+    
+    # Show output
+    if success_count > 0:
+        print("\n📁 Output files:")
+        for r in results:
+            if r:
+                print(f"  ✓ {r}")
 
 def option_view_stats(queue: QueueManager):
     """Option 3: View queue statistics"""
@@ -617,21 +877,28 @@ def main():
             option_cut_local(config, cutter, queue)
         
         elif choice == '3':
-            option_view_stats(queue)
+            # NEW: Full auto mode
+            option_auto_download_detect_cut(config, downloader, cutter, queue)
         
         elif choice == '4':
-            option_process_queue(queue, cutter)
+            option_auto_detect_scenes(config, cutter, queue)
         
         elif choice == '5':
-            option_clear_completed(queue)
+            option_view_stats(queue)
         
         elif choice == '6':
-            option_settings(config, queue)
+            option_process_queue(queue, cutter)
         
         elif choice == '7':
-            option_license_status(lm)
+            option_clear_completed(queue)
         
         elif choice == '8':
+            option_settings(config, queue)
+        
+        elif choice == '9':
+            option_license_status(lm)
+        
+        elif choice == '10':
             option_about()
         
         elif choice == '0':
@@ -639,7 +906,7 @@ def main():
             sys.exit(0)
         
         else:
-            print("❌ Invalid option. Choose 0-8.")
+            print("❌ Invalid option. Choose 0-10.")
         
         # Pause before next iteration
         input("\nPress Enter to continue...")
