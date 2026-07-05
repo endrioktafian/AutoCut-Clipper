@@ -54,7 +54,7 @@ Automatically cut viral clips from videos using AI analysis. Download from YouTu
 ### One-Command Install
 
 ```bash
-pkg update -y && pkg install wget -y && wget -O install.sh https://raw.githubusercontent.com/YOUR_REPO/main/install.sh && bash install.sh
+pkg update -y && pkg install wget -y && wget -O install.sh https://raw.githubusercontent.com/endrioktafian/AutoCut-Clipper/main/install.sh && bash install.sh
 ```
 
 ### Manual Install
