@@ -56,3 +56,8 @@ tmp/
 
 # Output (optional - uncomment if you don't want output in repo)
 # output/
+
+# Local unlocked version (DO NOT COMMIT)
+autocut_local.py
+autocut_unlocked.py
+*.local.py

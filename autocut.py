@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-🎬 AUTOCUT TERMUX - Main CLI
-Menu-driven interface untuk auto-cut video dari AI output
-No license, no expiry, full access
+🎬 AUTOCUT TERMUX - GitHub Version (WITH LICENSE)
+Menu-driven interface dengan license activation
+HANYA untuk versi GitHub public - JANGAN dipake untuk personal use!
 """
 
 import os
@@ -19,18 +19,28 @@ from parser import AIParser, VideoAnalysis
 from downloader import VideoDownloader
 from cutter import VideoCutter
 from queue_manager import QueueManager
+from license_manager import LicenseManager
 
 # Constants
-VERSION = "1.0.0"
+VERSION = "1.0.0-GITHUB"
 CONFIG_PATH = Path(__file__).parent / "config.json"
 PRESETS_DIR = Path(__file__).parent / "presets"
+
 BANNER = """
 ╔═══════════════════════════════════════════════════════════╗
 ║     🎬 AUTOCUT TERMUX v{version} - Viral Clip Generator     ║
 ║     AI-Powered Video Segmenter & Cutter                   ║
-║     No License • No Expiry • Full Access                  ║
+║     ⚠️  LICENSE REQUIRED - GitHub Version                 ║
 ╚═══════════════════════════════════════════════════════════╝
 """.format(version=VERSION)
+
+BANNER_TRIAL = """
+╔═══════════════════════════════════════════════════════════╗
+║     🎬 AUTOCUT TERMUX - TRIAL MODE                        ║
+║     {days_remaining:>3} hari lagi sebelum expired                  ║
+║     Ketik 'activate' untuk activate full license          ║
+╚═══════════════════════════════════════════════════════════╝
+"""
 
 def load_config() -> dict:
     """Load configuration"""
@@ -56,11 +66,78 @@ def load_preset(name: str) -> dict:
         "fps": 30
     }
 
+def check_license_requirement() -> bool:
+    """
+    Check license requirement di awal
+    Returns: True jika valid, False jika harus exit
+    """
+    lm = LicenseManager()
+    
+    is_valid, message, info = lm.check()
+    
+    if is_valid:
+        # License valid - show status singkat
+        license_type = info.get('type', 'unknown') if info else 'unknown'
+        print(f"\n🔐 License: {license_type} ✓")
+        return True
+    
+    # License tidak valid - tampilkan menu activation
+    print("\n" + "═" * 60)
+    print("🔐 LICENSE REQUIRED")
+    print("═" * 60)
+    print(f"\n{message}")
+    print("\nAutoCut Termux memerlukan license key untuk berjalan.")
+    print("\n💡 Opsi:")
+    print("  1. Masukkan license key (activate)")
+    print("  2. Gunakan trial gratis 7 hari")
+    print("  3. Exit")
+    print("\n" + "─" * 60)
+    
+    while True:
+        choice = input("\nPilih opsi [1-3]: ").strip().lower()
+        
+        if choice == '1' or choice == 'activate':
+            key = input("\nMasukkan license key: ").strip()
+            if key:
+                success, msg = lm.activate(key)
+                print(msg)
+                if success:
+                    print("\n✅ License activated! Restarting...")
+                    return True
+                else:
+                    print("\n⚠️  Activation gagal. Coba lagi atau gunakan trial.")
+        
+        elif choice == '2' or choice == 'trial':
+            # Generate trial key otomatis
+            import hashlib
+            device_id = lm.get_device_id()
+            email = f"trial_{device_id[:8]}@local"
+            trial_key = lm.generate_server_key(email, "trial", days=7)
+            
+            print(f"\n🎁 Trial key generated:")
+            print(f"   {trial_key}")
+            print(f"\n   Valid: 7 hari")
+            print(f"   Email: {email}")
+            
+            success, msg = lm.activate(trial_key)
+            if success:
+                print("\n✅ Trial activated! Starting...")
+                return True
+            else:
+                print("\n❌ Trial activation gagal.")
+        
+        elif choice == '3' or choice == 'exit' or choice == 'q':
+            print("\n👋 Bye!")
+            sys.exit(0)
+        
+        else:
+            print("❌ Invalid option. Pilih 1, 2, atau 3.")
+
 def print_banner():
-    """Print application banner"""
+    """Print application banner dengan license info"""
     print(BANNER)
 
-def print_menu():
+def print_menu(trial_mode: bool = False, days_left: int = 0):
     """Print main menu"""
     print("\n" + "─" * 60)
     print("📋 MAIN MENU")
@@ -71,7 +148,8 @@ def print_menu():
     print("  4. 📋 Process Pending Queue")
     print("  5. 🗑️  Clear Completed Videos")
     print("  6. ⚙️  Settings")
-    print("  7. ℹ️  About / Help")
+    print("  7. 🔐 License Status")
+    print("  8. ℹ️  About / Help")
     print("  0. 🚪 Exit")
     print("─" * 60)
 
@@ -91,6 +169,10 @@ def input_multiline(prompt: str, stop_word: str = "DONE") -> str:
             break
     
     return "\n".join(lines)
+
+def option_license_status(lm: LicenseManager):
+    """Option: Show license status"""
+    print("\n" + lm.status())
 
 def option_download_and_cut(config: dict, downloader: VideoDownloader, 
                             cutter: VideoCutter, queue: QueueManager):
@@ -295,12 +377,6 @@ def option_view_stats(queue: QueueManager):
     print(f"  Done:      {stats['videos_done']}")
     print(f"  Error:     {stats['videos_error']}")
     
-    print("\n✂️  CLIPS:")
-    print(f"  Total:     {stats['clips_total']}")
-    print(f"  Pending:   {stats['clips_pending']}")
-    print(f"  Done:      {stats['clips_done']}")
-    print(f"  Error:     {stats['clips_error']}")
-    
     # Recent activity
     print("\n📜 RECENT ACTIVITY:")
     recent = queue.get_recent_activity(5)
@@ -442,16 +518,15 @@ def option_settings(config: dict, queue: QueueManager):
             print("✅ Settings reset to default")
 
 def option_about():
-    """Option 7: About / Help"""
+    """Option 8: About / Help"""
     print("\n" + "─" * 60)
     print("ℹ️  ABOUT / HELP")
     print("─" * 60)
     
     print("""
-🎬 AUTOCUT TERMUX v1.0.0
+🎬 AUTOCUT TERMUX v1.0.0 (GitHub Version)
 
-An open-source AI-powered video clipper for Termux.
-No license, no expiry, full access.
+LICENSED VERSION - Requires activation
 
 FEATURES:
   • Download video from YouTube/TikTok/Instagram
@@ -461,37 +536,20 @@ FEATURES:
   • Customizable presets (zoom, fps, effects)
   • SQLite-based queue for resume capability
 
-HOW TO USE:
-  1. Get AI analysis from Gemini/Claude
-     - Paste video URL to AI
-     - Ask for viral clip segments with timestamps
-     - Copy the output
-  
-  2. In AutoCut:
-     - Option 1: Download + Cut (paste URL + AI output)
-     - Option 2: Cut Local (already have video file)
-  
-  3. Select preset and confirm
-  4. Wait for processing
-  5. Find output in ./output folder
+LICENSE:
+  • Trial: 7 days gratis
+  • Full: 1 tahun (365 hari)
+  • 1 license = 1 device
 
-AI PROMPT TEMPLATE:
-  "Analyze this video and identify viral clip segments.
-   For each clip, provide:
-   - Timestamp (start - end)
-   - Title/hook
-   - Why it's viral
-   
-   Format:
-   KLIP [1]:
-   00:00 - 00:30 | Catchy title
-   Hook: \"The hook text\"
-   "
+ACTIVATION:
+  1. Beli license di: (your website)
+  2. Dapatkan license key via email
+  3. Pilih menu 7 (License) → Activate
+  4. Paste license key
 
 SUPPORT:
-  • GitHub: (your repo)
-  • License: MIT (open source)
-  • No warranty - use at your own risk
+  • Email: support@yourdomain.com
+  • Docs: README.md
 """)
 
 def list_presets() -> list:
@@ -510,7 +568,13 @@ def list_presets() -> list:
     return presets
 
 def main():
-    """Main entry point"""
+    """Main entry point - dengan license check di awal"""
+    # CHECK LICENSE FIRST
+    if not check_license_requirement():
+        print("\n❌ License validation failed. Exiting.")
+        sys.exit(1)
+    
+    # License valid - lanjut ke main app
     print_banner()
     
     # Load config
@@ -520,13 +584,28 @@ def main():
     downloader = VideoDownloader(config.get('temp_dir', './temp'))
     cutter = VideoCutter(config.get('output_dir', './output'))
     queue = QueueManager()
+    lm = LicenseManager()
+    
+    # Check trial mode
+    is_valid, _, info = lm.check()
+    trial_mode = info and info.get('type') == 'trial' if info else False
+    days_left = 0
+    if info and 'expiry' in info:
+        try:
+            expiry = datetime.fromisoformat(info['expiry'])
+            days_left = max(0, (expiry - datetime.now()).days)
+        except:
+            pass
+    
+    if trial_mode:
+        print(BANNER_TRIAL.format(days_remaining=days_left))
     
     # Main loop
     while True:
-        print_menu()
+        print_menu(trial_mode, days_left)
         
         try:
-            choice = input("\nPilih opsi [0-7]: ").strip()
+            choice = input("\nPilih opsi [0-8]: ").strip()
         except (EOFError, KeyboardInterrupt):
             print("\n\n👋 Bye!")
             sys.exit(0)
@@ -550,6 +629,9 @@ def main():
             option_settings(config, queue)
         
         elif choice == '7':
+            option_license_status(lm)
+        
+        elif choice == '8':
             option_about()
         
         elif choice == '0':
@@ -557,7 +639,7 @@ def main():
             sys.exit(0)
         
         else:
-            print("❌ Invalid option. Choose 0-7.")
+            print("❌ Invalid option. Choose 0-8.")
         
         # Pause before next iteration
         input("\nPress Enter to continue...")
