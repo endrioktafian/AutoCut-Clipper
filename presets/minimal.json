@@ -1,0 +1,10 @@
+{
+  "zoom": false,
+  "zoom_factor": 1.0,
+  "caption": false,
+  "fps": 30,
+  "brightness": 0,
+  "contrast": 1,
+  "fast_cut": true,
+  "description": "Minimal - just cut, no effects, fastest processing"
+}
